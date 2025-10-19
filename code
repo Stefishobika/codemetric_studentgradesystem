@@ -1,129 +1,114 @@
 import java.util.ArrayList;
 import java.util.Scanner;
+import java.util.Locale;
 
-class Book {
+class Student {
     private static int nextId = 1;
     private final int id;
-    private String title;
-    private String author;
-    private boolean available;
+    private String name;
+    private double marks; // assume marks out of 100
+    private String grade;
 
-    public Book(String title, String author) {
+    public Student(String name, double marks) {
         this.id = nextId++;
-        this.title = title;
-        this.author = author;
-        this.available = true;
+        this.name = name;
+        this.marks = marks;
+        this.grade = computeGrade(marks);
+    }
+
+    private String computeGrade(double m) {
+        if (m < 0 || m > 100) return "Invalid";
+        if (m >= 90) return "A+";
+        if (m >= 80) return "A";
+        if (m >= 70) return "B";
+        if (m >= 60) return "C";
+        if (m >= 50) return "D";
+        return "F";
+    }
+
+    public void setMarks(double marks) {
+        this.marks = marks;
+        this.grade = computeGrade(marks);
     }
 
     public int getId() { return id; }
-    public String getTitle() { return title; }
-    public String getAuthor() { return author; }
-    public boolean isAvailable() { return available; }
-
-    public void borrow() { available = false; }
-    public void returned() { available = true; }
+    public String getName() { return name; }
+    public double getMarks() { return marks; }
+    public String getGrade() { return grade; }
 
     @Override
     public String toString() {
-        return String.format("%-4d | %-30s | %-20s | %s", id, title, author, (available ? "Available" : "Borrowed"));
+        return String.format("%-4d | %-20s | %6.2f | %-3s", id, name, marks, grade);
     }
 }
 
-public class LibrarySystem {
-    private final ArrayList<Book> books = new ArrayList<>();
-    private final Scanner sc = new Scanner(System.in);
+public class StudentGrades {
+    private final ArrayList<Student> students = new ArrayList<>();
+    private final Scanner sc = new Scanner(System.in).useLocale(Locale.US);
 
     public static void main(String[] args) {
-        new LibrarySystem().run();
+        new StudentGrades().run();
     }
 
     private void run() {
-        seedSampleBooks();
+        seedSampleStudents();
         while (true) {
             showMenu();
-            int choice = readInt("Choose option: ");
+            int choice = readInt("Option: ");
             switch (choice) {
-                case 1 -> addBook();
-                case 2 -> borrowBook();
-                case 3 -> returnBook();
-                case 4 -> displayBooks();
-                case 5 -> {
-                    System.out.println("Exiting library system. Goodbye!");
+                case 1 -> addStudent();
+                case 2 -> updateMarks();
+                case 3 -> displayReport();
+                case 4 -> {
+                    System.out.println("Goodbye!");
                     return;
                 }
-                default -> System.out.println("Invalid option. Try again.");
+                default -> System.out.println("Invalid choice.");
             }
         }
     }
 
     private void showMenu() {
-        System.out.println("\n--- Library Management ---");
-        System.out.println("1. Add Book");
-        System.out.println("2. Borrow Book");
-        System.out.println("3. Return Book");
-        System.out.println("4. Display All Books");
-        System.out.println("5. Exit");
+        System.out.println("\n--- Student Grade Calculator ---");
+        System.out.println("1. Add Student");
+        System.out.println("2. Update Marks");
+        System.out.println("3. Display Report (tabular)");
+        System.out.println("4. Exit");
     }
 
-    private void addBook() {
-        System.out.print("Title: ");
-        String title = sc.nextLine().trim();
-        System.out.print("Author: ");
-        String author = sc.nextLine().trim();
-
-        if (title.isEmpty() || author.isEmpty()) {
-            System.out.println("Error: Title and author cannot be empty.");
-            return;
-        }
-
-        books.add(new Book(title, author));
-        System.out.println("Book added successfully.");
+    private void addStudent() {
+        System.out.print("Student name: ");
+        String name = sc.nextLine().trim();
+        double marks = readDoubleInRange("Marks (0-100): ", 0, 100);
+        students.add(new Student(name, marks));
+        System.out.println("Student added.");
     }
 
-    private void borrowBook() {
-        displayBooks();
-        int id = readInt("Enter book ID to borrow: ");
-        Book b = findBookById(id);
-        if (b == null) {
-            System.out.println("Error: No book with ID " + id + ".");
+    private void updateMarks() {
+        displayReport();
+        int id = readInt("Enter student ID to update: ");
+        Student s = findById(id);
+        if (s == null) {
+            System.out.println("No student with ID " + id);
             return;
         }
-        if (!b.isAvailable()) {
-            System.out.println("Error: Book is currently borrowed.");
-            return;
-        }
-        b.borrow();
-        System.out.println("You borrowed: " + b.getTitle());
+        double marks = readDoubleInRange("New marks (0-100): ", 0, 100);
+        s.setMarks(marks);
+        System.out.println("Marks updated.");
     }
 
-    private void returnBook() {
-        displayBooks();
-        int id = readInt("Enter book ID to return: ");
-        Book b = findBookById(id);
-        if (b == null) {
-            System.out.println("Error: No book with ID " + id + ".");
+    private void displayReport() {
+        if (students.isEmpty()) {
+            System.out.println("No students available.");
             return;
         }
-        if (b.isAvailable()) {
-            System.out.println("Error: That book is not borrowed.");
-            return;
-        }
-        b.returned();
-        System.out.println("Book returned: " + b.getTitle());
+        System.out.println("\nID   | Name                 | Marks  | G");
+        System.out.println("---------------------------------------------");
+        for (Student s : students) System.out.println(s);
     }
 
-    private void displayBooks() {
-        if (books.isEmpty()) {
-            System.out.println("No books in library.");
-            return;
-        }
-        System.out.println("\nID   | Title                          | Author              | Status");
-        System.out.println("---------------------------------------------------------------------");
-        for (Book b : books) System.out.println(b);
-    }
-
-    private Book findBookById(int id) {
-        for (Book b : books) if (b.getId() == id) return b;
+    private Student findById(int id) {
+        for (Student s : students) if (s.getId() == id) return s;
         return null;
     }
 
@@ -131,17 +116,28 @@ public class LibrarySystem {
         while (true) {
             System.out.print(prompt);
             String line = sc.nextLine().trim();
+            try { return Integer.parseInt(line); }
+            catch (NumberFormatException e) { System.out.println("Please enter a valid integer."); }
+        }
+    }
+
+    private double readDoubleInRange(String prompt, double min, double max) {
+        while (true) {
+            System.out.print(prompt);
             try {
-                return Integer.parseInt(line);
+                double v = Double.parseDouble(sc.nextLine().trim());
+                if (v < min || v > max) {
+                    System.out.printf("Value must be between %.2f and %.2f.%n", min, max);
+                } else return v;
             } catch (NumberFormatException e) {
-                System.out.println("Please enter a valid integer.");
+                System.out.println("Please enter a valid number (decimal allowed).");
             }
         }
     }
 
-    private void seedSampleBooks() {
-        books.add(new Book("The Alchemist", "Paulo Coelho"));
-        books.add(new Book("Clean Code", "Robert C. Martin"));
-        books.add(new Book("Introduction to Algorithms", "Cormen et al."));
+    private void seedSampleStudents() {
+        students.add(new Student("Alice", 92));
+        students.add(new Student("Bob", 76.5));
+        students.add(new Student("Charlie", 58));
     }
 }
